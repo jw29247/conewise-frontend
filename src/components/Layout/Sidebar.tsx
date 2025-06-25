@@ -1,7 +1,15 @@
-import { NavLink } from 'react-router-dom';
-import clsx from 'clsx';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import Logo from '../ui/Logo';
 
-const Sidebar = () => {
+interface SidebarProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
+  const location = useLocation();
+
   const navItems = [
     { 
       name: 'Dashboard', 
@@ -9,6 +17,15 @@ const Sidebar = () => {
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      )
+    },
+    { 
+      name: 'Generate Plan', 
+      path: '/generate-plan',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
       )
     },
@@ -43,56 +60,54 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="w-64 bg-gray-900 min-h-screen">
-      <nav className="mt-5 px-2">
-        <div className="space-y-1">
-          {navItems.map((item) => (
-            <NavLink
+    <div className={`${isOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-100 transition-all duration-300 flex flex-col`}>
+      {/* Logo */}
+      <div className="p-6 border-b border-gray-100">
+        <Logo className="text-gray-900" size="lg" showText={isOpen} />
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-4 py-6 space-y-1">
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          return (
+            <Link
               key={item.name}
               to={item.path}
-              className={({ isActive }) =>
-                clsx(
-                  'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
-                  isActive
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                )
-              }
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-light transition-all ${
+                isActive 
+                  ? 'bg-gray-900 text-white' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
             >
               {item.icon}
-              <span className="ml-3">{item.name}</span>
-              {item.name === 'Plans' && (
-                <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700">
-                  New
-                </span>
-              )}
-            </NavLink>
-          ))}
-        </div>
-        
-        <div className="mt-8 pt-8 border-t border-gray-700">
-          <div className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Quick Actions
-          </div>
-          <div className="mt-3 space-y-1">
-            <button className="w-full group flex items-center px-3 py-2 text-sm font-medium text-gray-300 rounded-lg hover:bg-gray-800 hover:text-white transition-colors">
-              <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New Plan
-            </button>
-          </div>
-        </div>
-        
-        <div className="mt-8 px-3">
-          <div className="bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg p-4">
-            <h3 className="text-white text-sm font-medium">Pro Tip</h3>
-            <p className="mt-1 text-brand-100 text-xs">
-              Use keyboard shortcuts to navigate faster. Press '?' to see all shortcuts.
+              {isOpen && <span>{item.name}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Bottom section */}
+      <div className="p-4 border-t border-gray-100">
+        {isOpen && (
+          <div className="bg-gradient-to-br from-amber-50 to-green-50 rounded-xl p-4 mb-4">
+            <h3 className="text-sm font-medium text-gray-900">Need help?</h3>
+            <p className="mt-1 text-xs text-gray-600">
+              Check our guide for creating compliant traffic plans.
             </p>
           </div>
-        </div>
-      </nav>
+        )}
+        
+        <button
+          onClick={onToggle}
+          className="w-full flex items-center justify-center p-2 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+              d={isOpen ? "M11 19l-7-7 7-7m8 14l-7-7 7-7" : "M13 5l7 7-7 7M5 5l7 7-7 7"} />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 };

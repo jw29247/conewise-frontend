@@ -24,12 +24,12 @@ interface MapDrawingProps {
   initialEquipment?: Equipment[];
 }
 
-// Equipment with predetermined sizes in meters (removed barriers and cones)
+// Equipment with predetermined sizes in meters
 const EQUIPMENT_TYPES = [
-  { id: 'digger', name: 'Digger', icon: '🚜', color: '#f59e0b', width: 3, length: 5 },
+  { id: 'digger', name: 'Digger', icon: '🚜', color: '#10b981', width: 3, length: 5 },
   { id: 'van', name: 'Van', icon: '🚐', color: '#3b82f6', width: 2, length: 5 },
   { id: 'crane', name: 'Crane', icon: '🏗️', color: '#ef4444', width: 4, length: 8 },
-  { id: 'truck', name: 'Truck', icon: '🚛', color: '#10b981', width: 2.5, length: 7 },
+  { id: 'truck', name: 'Truck', icon: '🚛', color: '#f59e0b', width: 2.5, length: 7 },
 ];
 
 const MapDrawing: React.FC<MapDrawingProps> = ({
@@ -55,7 +55,7 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
       container: mapContainer.current,
       style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       center: [center.lng, center.lat],
-      zoom: 18, // Higher zoom for better detail
+      zoom: 18,
     });
 
     const draw = new MapboxDraw({
@@ -69,8 +69,6 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
 
     map.addControl(draw);
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-    // Add scale control to show distances
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 200 }), 'bottom-left');
 
     mapRef.current = map;
@@ -79,13 +77,11 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     map.on('load', () => {
       setMapLoaded(true);
       
-      // Load initial work area if provided
       if (initialWorkArea) {
         draw.add(initialWorkArea);
         calculateAreaDimensions(initialWorkArea);
       }
 
-      // Add layer for auto-generated work area
       map.addSource('auto-work-area', {
         type: 'geojson',
         data: {
@@ -99,8 +95,8 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
         type: 'fill',
         source: 'auto-work-area',
         paint: {
-          'fill-color': '#f97316',
-          'fill-opacity': 0.2
+          'fill-color': '#f59e0b',
+          'fill-opacity': 0.15
         }
       });
 
@@ -109,8 +105,9 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
         type: 'line',
         source: 'auto-work-area',
         paint: {
-          'line-color': '#f97316',
-          'line-width': 2
+          'line-color': '#f59e0b',
+          'line-width': 2,
+          'line-dasharray': [2, 2]
         }
       });
     });
@@ -119,7 +116,6 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     map.on('draw.update', handleDrawUpdate);
     map.on('draw.delete', handleDrawUpdate);
 
-    // Handle equipment placement (only in auto mode)
     map.on('click', (e) => {
       if (drawMode === 'auto' && selectedTool !== 'select' && EQUIPMENT_TYPES.find(t => t.id === selectedTool)) {
         const equipmentType = EQUIPMENT_TYPES.find((t) => t.id === selectedTool);
@@ -157,7 +153,6 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     if (drawMode === 'auto' && equipment.length > 0) {
       generateAutoWorkArea();
     } else if (drawMode === 'manual' && mapRef.current) {
-      // Clear auto-generated area when switching to manual
       const source = mapRef.current.getSource('auto-work-area') as maplibregl.GeoJSONSource;
       if (source) {
         source.setData({
@@ -165,7 +160,6 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
           features: []
         });
       }
-      // Also clear equipment when switching to manual
       clearEquipment();
     }
   }, [equipment, drawMode]);
@@ -199,25 +193,20 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
   const generateAutoWorkArea = () => {
     if (!mapRef.current || equipment.length === 0) return;
 
-    // Create points for all equipment with their sizes
     const equipmentPolygons = equipment.map(eq => {
       const center = turf.point(eq.coordinates);
-      // Create a buffer around each equipment based on its size
       const maxDimension = Math.max(eq.width, eq.length);
-      const buffer = turf.buffer(center, maxDimension / 2 + 2, { units: 'meters' }); // Add 2m safety margin
+      const buffer = turf.buffer(center, maxDimension / 2 + 2, { units: 'meters' });
       return buffer;
     });
 
-    // Union all equipment buffers to create work area
     let workArea = equipmentPolygons[0];
     for (let i = 1; i < equipmentPolygons.length; i++) {
       workArea = turf.union(workArea, equipmentPolygons[i]) || workArea;
     }
 
-    // Smooth the work area
     const smoothed = turf.simplify(workArea, { tolerance: 0.0001, highQuality: true });
 
-    // Update the map
     const source = mapRef.current.getSource('auto-work-area') as maplibregl.GeoJSONSource;
     if (source) {
       source.setData({
@@ -237,34 +226,35 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     el.className = 'equipment-marker';
     el.style.position = 'relative';
     
-    // Create equipment visualization with size
     el.innerHTML = `
       <div style="
-        background-color: ${equipmentItem.color};
+        background: linear-gradient(135deg, ${equipmentItem.color} 0%, ${equipmentItem.color}dd 100%);
         color: white;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 24px;
         cursor: move;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         position: relative;
-      ">
+        transition: all 0.2s;
+      " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
         ${equipmentItem.icon}
         <div style="
           position: absolute;
-          bottom: -20px;
+          bottom: -24px;
           left: 50%;
           transform: translateX(-50%);
-          background: rgba(0,0,0,0.8);
+          background: rgba(0,0,0,0.9);
           color: white;
-          padding: 2px 6px;
-          border-radius: 3px;
-          font-size: 10px;
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 11px;
           white-space: nowrap;
+          font-weight: 500;
         ">
           ${equipmentItem.width}m × ${equipmentItem.length}m
         </div>
@@ -288,7 +278,6 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
       );
     });
 
-    // Right-click to remove
     el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       marker.remove();
@@ -296,7 +285,6 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
       setEquipment((prev) => prev.filter((item) => item.id !== equipmentItem.id));
     });
 
-    // Double-click to rotate
     el.addEventListener('dblclick', (e) => {
       e.stopPropagation();
       setEquipment((prev) =>
@@ -314,8 +302,6 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
       const data = drawRef.current.getAll();
       const workArea = data.features.length > 0 ? data.features[0] : null;
       onDataUpdate(workArea, []);
-    } else if (drawMode === 'auto') {
-      // Data is updated via generateAutoWorkArea
     }
   };
 
@@ -345,120 +331,139 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
   };
 
   return (
-    <div className="relative">
-      {/* Drawing Mode Toggle */}
-      <div className="absolute top-4 left-4 z-10 bg-white rounded-lg shadow-lg p-3" style={{ width: '280px' }}>
-        <div className="mb-3">
-          <label className="text-sm font-medium text-gray-700">Drawing Mode:</label>
-          <div className="mt-2 space-y-2">
-            <button
-              onClick={() => handleModeChange('manual')}
-              className={`w-full px-3 py-2 rounded text-sm font-medium text-left transition-colors ${
-                drawMode === 'manual'
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <div className="font-medium">Manual Draw</div>
-              <div className="text-xs mt-1 opacity-80">Draw work area polygon directly</div>
-            </button>
-            <button
-              onClick={() => handleModeChange('auto')}
-              className={`w-full px-3 py-2 rounded text-sm font-medium text-left transition-colors ${
-                drawMode === 'auto'
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <div className="font-medium">Auto from Equipment</div>
-              <div className="text-xs mt-1 opacity-80">Place equipment to generate area</div>
-            </button>
-          </div>
-        </div>
-
-        {/* Equipment Tools - Only show in auto mode */}
-        {drawMode === 'auto' && (
-          <>
-            <div className="border-t pt-3">
-              <p className="text-xs font-medium text-gray-500 mb-2">Equipment Tools:</p>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setSelectedTool('select')}
-                  className={`w-full px-3 py-2 rounded text-sm font-medium text-left transition-colors ${
-                    selectedTool === 'select'
-                      ? 'bg-orange-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Select / Move
-                </button>
-                {EQUIPMENT_TYPES.map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => setSelectedTool(type.id)}
-                    className={`w-full px-3 py-2 rounded text-sm font-medium text-left flex items-center justify-between transition-colors ${
-                      selectedTool === type.id
-                        ? 'bg-orange-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <span className="flex items-center">
-                      <span className="mr-2">{type.icon}</span>
-                      {type.name}
-                    </span>
-                    <span className="text-xs opacity-75">{type.width}×{type.length}m</span>
-                  </button>
-                ))}
-              </div>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="relative">
+        {/* Drawing Mode Toggle */}
+        <div className="absolute top-4 left-4 z-10 bg-white rounded-xl shadow-lg border border-gray-100 p-4" style={{ width: '320px' }}>
+          <div className="mb-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-3">Drawing Mode</h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleModeChange('manual')}
+                className={`
+                  w-full px-4 py-3 rounded-xl text-left transition-all
+                  ${drawMode === 'manual'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  }
+                `}
+              >
+                <div className="font-medium">Manual Draw</div>
+                <div className="text-xs mt-0.5 opacity-80">Draw work area polygon directly</div>
+              </button>
+              <button
+                onClick={() => handleModeChange('auto')}
+                className={`
+                  w-full px-4 py-3 rounded-xl text-left transition-all
+                  ${drawMode === 'auto'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  }
+                `}
+              >
+                <div className="font-medium">Auto from Equipment</div>
+                <div className="text-xs mt-0.5 opacity-80">Place equipment to generate area</div>
+              </button>
             </div>
-          </>
-        )}
-        
-        <button
-          onClick={clearAll}
-          className="w-full mt-3 px-3 py-2 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700 transition-colors"
-        >
-          Clear All
-        </button>
-      </div>
-
-      {/* Dimensions Display */}
-      {workAreaDimensions && (
-        <div className="absolute top-4 right-4 z-10 bg-white rounded-lg shadow-lg p-3 mr-12">
-          <p className="text-sm font-medium text-gray-700">Work Area:</p>
-          <p className="text-xs text-gray-600">Area: {workAreaDimensions.area} m²</p>
-          <p className="text-xs text-gray-600">Perimeter: {workAreaDimensions.perimeter} m</p>
-        </div>
-      )}
-
-      {/* Equipment List - Only show in auto mode */}
-      {drawMode === 'auto' && equipment.length > 0 && (
-        <div className="absolute bottom-20 right-4 z-10 bg-white rounded-lg shadow-lg p-3 max-h-48 overflow-y-auto">
-          <p className="text-sm font-medium text-gray-700 mb-2">Placed Equipment ({equipment.length}):</p>
-          <div className="space-y-1">
-            {equipment.map((item) => (
-              <div key={item.id} className="flex items-center text-xs text-gray-600">
-                <span className="mr-2">{item.icon}</span>
-                <span>{item.name} ({item.width}×{item.length}m)</span>
-              </div>
-            ))}
           </div>
+
+          {/* Equipment Tools - Only show in auto mode */}
+          {drawMode === 'auto' && (
+            <>
+              <div className="border-t border-gray-100 pt-4">
+                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Equipment Tools</h4>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setSelectedTool('select')}
+                    className={`
+                      w-full px-3 py-2.5 rounded-lg text-sm font-medium text-left transition-all
+                      ${selectedTool === 'select'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                      }
+                    `}
+                  >
+                    Select / Move
+                  </button>
+                  {EQUIPMENT_TYPES.map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => setSelectedTool(type.id)}
+                      className={`
+                        w-full px-3 py-2.5 rounded-lg text-sm font-medium text-left flex items-center justify-between transition-all
+                        ${selectedTool === type.id
+                          ? 'bg-gray-900 text-white'
+                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                        }
+                      `}
+                    >
+                      <span className="flex items-center">
+                        <span className="text-lg mr-2">{type.icon}</span>
+                        {type.name}
+                      </span>
+                      <span className="text-xs opacity-75">{type.width}×{type.length}m</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+          
+          <button
+            onClick={clearAll}
+            className="w-full mt-4 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+          >
+            Clear All
+          </button>
         </div>
-      )}
 
-      {/* Instructions */}
-      <div className="absolute bottom-4 left-4 right-4 z-10 bg-white rounded-lg shadow-lg p-3">
-        <p className="text-sm text-gray-600">
-          {drawMode === 'manual'
-            ? 'Click on the map to start drawing a polygon. Click each corner of your work area, then double-click to finish. Use the polygon button in the map controls.'
-            : selectedTool === 'select'
-              ? 'Click and drag equipment to move. Right-click to remove. Double-click to rotate.'
-              : `Click to place ${EQUIPMENT_TYPES.find((t) => t.id === selectedTool)?.name || 'equipment'}. The work area will be automatically generated around all placed equipment.`}
-        </p>
+        {/* Dimensions Display */}
+        {workAreaDimensions && (
+          <div className="absolute top-4 right-4 z-10 bg-white rounded-xl shadow-lg border border-gray-100 p-4 mr-12">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Work Area</h4>
+            <div className="space-y-1">
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Area:</span> {workAreaDimensions.area} m²
+              </p>
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Perimeter:</span> {workAreaDimensions.perimeter} m
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Equipment List - Only show in auto mode */}
+        {drawMode === 'auto' && equipment.length > 0 && (
+          <div className="absolute bottom-24 right-4 z-10 bg-white rounded-xl shadow-lg border border-gray-100 p-4 max-h-56 overflow-y-auto">
+            <h4 className="text-sm font-medium text-gray-900 mb-3">
+              Placed Equipment ({equipment.length})
+            </h4>
+            <div className="space-y-2">
+              {equipment.map((item) => (
+                <div key={item.id} className="flex items-center text-sm text-gray-600">
+                  <span className="text-lg mr-2">{item.icon}</span>
+                  <span>{item.name}</span>
+                  <span className="text-xs text-gray-400 ml-1">({item.width}×{item.length}m)</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Instructions */}
+        <div className="absolute bottom-4 left-4 right-4 z-10 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-xl shadow-lg p-4">
+          <p className="text-sm">
+            {drawMode === 'manual'
+              ? '💡 Click on the map to start drawing a polygon. Click each corner of your work area, then double-click to finish.'
+              : selectedTool === 'select'
+                ? '💡 Click and drag equipment to move. Right-click to remove. Double-click to rotate.'
+                : `💡 Click to place ${EQUIPMENT_TYPES.find((t) => t.id === selectedTool)?.name || 'equipment'}. The work area will be automatically generated.`}
+          </p>
+        </div>
+
+        {/* Map Container */}
+        <div ref={mapContainer} className="w-full h-[600px] rounded-xl overflow-hidden" />
       </div>
-
-      {/* Map Container */}
-      <div ref={mapContainer} className="w-full h-[600px] rounded-lg" />
     </div>
   );
 };
