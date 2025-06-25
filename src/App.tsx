@@ -8,6 +8,7 @@ import PlansPage from './pages/PlansPage';
 import TeamPage from './pages/TeamPage';
 import SettingsPage from './pages/SettingsPage';
 import GeneratePlanPage from './pages/GeneratePlanPage';
+import ReviewPage from './pages/ReviewPage';
 import PrivateRoute from './components/PrivateRoute';
 
 function AppContent() {
@@ -57,12 +58,21 @@ function AppContent() {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/review"
+        element={
+          <PrivateRoute>
+            <ReviewPage />
+          </PrivateRoute>
+        }
+      />
       {/* Temporary dev routes - bypass authentication */}
       <Route path="/dashboard-dev" element={<Dashboard />} />
       <Route path="/plans-dev" element={<PlansPage />} />
       <Route path="/team-dev" element={<TeamPage />} />
       <Route path="/settings-dev" element={<SettingsPage />} />
       <Route path="/generate-plan-dev" element={<GeneratePlanPage />} />
+      <Route path="/review-dev" element={<ReviewPage />} />
       <Route path="/" element={<LandingPage />} />
     </Routes>
   );
