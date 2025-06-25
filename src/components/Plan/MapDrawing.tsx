@@ -221,33 +221,32 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
       const el = document.createElement('div');
       el.className = 'dimension-label';
       el.style.cssText = `
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        background: rgba(31, 41, 55, 0.95);
         color: #ffffff;
-        padding: 8px 12px;
-        border-radius: 12px;
-        font-size: 13px;
-        font-weight: 600;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 500;
         font-family: system-ui, -apple-system, sans-serif;
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        position: relative;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         text-align: center;
         white-space: nowrap;
-        transform: translateY(-50%);
         z-index: 10;
-        backdrop-filter: blur(8px);
+        backdrop-filter: blur(4px);
         transition: all 0.2s ease;
+        transform: translate(-50%, -50%);
       `;
       
-      // Add hover effect
+      // Add subtle hover effect without changing position
       el.addEventListener('mouseenter', () => {
-        el.style.transform = 'translateY(-50%) scale(1.05)';
-        el.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.4), 0 3px 6px rgba(0, 0, 0, 0.15)';
+        el.style.backgroundColor = 'rgba(245, 158, 11, 0.95)';
+        el.style.boxShadow = '0 2px 6px rgba(245, 158, 11, 0.4)';
       });
       
       el.addEventListener('mouseleave', () => {
-        el.style.transform = 'translateY(-50%) scale(1)';
-        el.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)';
+        el.style.backgroundColor = 'rgba(31, 41, 55, 0.95)';
+        el.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.3)';
       });
 
       // Create clean distance display with proper formatting
@@ -257,14 +256,7 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
           ? `${Math.round(length)}m`
           : `${length.toFixed(1)}m`;
       
-      el.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 4px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.8;">
-            <path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/>
-          </svg>
-          <span>${distanceText}</span>
-        </div>
-      `;
+      el.innerHTML = distanceText;
 
       const label = new maplibregl.Marker({ element: el, className: 'dimension-label' })
         .setLngLat(midpoint)
