@@ -90,63 +90,12 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
         addDimensionLabels(initialWorkArea);
       }
 
-      map.addSource('auto-work-area', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: []
-        }
-      });
-
-      map.addLayer({
-        id: 'auto-work-area-fill',
-        type: 'fill',
-        source: 'auto-work-area',
-        paint: {
-          'fill-color': '#f59e0b',
-          'fill-opacity': 0.15
-        }
-      });
-
-      map.addLayer({
-        id: 'auto-work-area-outline',
-        type: 'line',
-        source: 'auto-work-area',
-        paint: {
-          'line-color': '#f59e0b',
-          'line-width': 2,
-          'line-dasharray': [2, 2]
-        }
-      });
     });
 
     map.on('draw.create', handleDrawUpdate);
     map.on('draw.update', handleDrawUpdate);
     map.on('draw.delete', handleDrawUpdate);
 
-    map.on('click', (e) => {
-      if (drawMode === 'auto' && selectedTool !== 'select' && EQUIPMENT_TYPES.find(t => t.id === selectedTool)) {
-        const equipmentType = EQUIPMENT_TYPES.find((t) => t.id === selectedTool);
-        if (equipmentType) {
-          const newEquipment = {
-            id: `equipment-${Date.now()}`,
-            type: equipmentType.id,
-            name: equipmentType.name,
-            icon: equipmentType.icon,
-            color: equipmentType.color,
-            width: equipmentType.width,
-            length: equipmentType.length,
-            coordinates: [e.lngLat.lng, e.lngLat.lat],
-            rotation: 0,
-          };
-          
-          addEquipmentMarker(newEquipment);
-          if (mountedRef.current) {
-            setEquipment((prev) => [...prev, newEquipment]);
-          }
-        }
-      }
-    });
 
     return () => {
       mountedRef.current = false;
@@ -168,16 +117,9 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     if (!mapLoaded || !mapRef.current) return;
     
     if (drawMode === 'manual') {
-      try {
-        const source = mapRef.current.getSource('auto-work-area') as maplibregl.GeoJSONSource;
-        if (source) {
-          source.setData({
-            type: 'FeatureCollection',
-            features: []
-          });
-        }
-      } catch (error) {
-        console.error('Error updating auto-work-area source:', error);
+      // Clear any auto-generated features from draw when switching to manual
+      if (drawRef.current) {
+        drawRef.current.deleteAll();
       }
       // Only clear equipment when switching to manual mode, not on every equipment change
       if (equipment.length > 0) {
@@ -195,13 +137,61 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     }
   }, [drawMode, mapLoaded]);
   
+  // Handle map clicks for equipment placement
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+
+    const handleMapClick = (e: any) => {
+      console.log('Map clicked:', { drawMode, selectedTool, coordinates: [e.lngLat.lng, e.lngLat.lat] });
+      if (drawMode === 'auto' && selectedTool !== 'select' && EQUIPMENT_TYPES.find(t => t.id === selectedTool)) {
+        console.log('Click conditions met, adding equipment');
+        const equipmentType = EQUIPMENT_TYPES.find((t) => t.id === selectedTool);
+        if (equipmentType) {
+          const newEquipment = {
+            id: `equipment-${Date.now()}`,
+            type: equipmentType.id,
+            name: equipmentType.name,
+            icon: equipmentType.icon,
+            color: equipmentType.color,
+            width: equipmentType.width,
+            length: equipmentType.length,
+            coordinates: [e.lngLat.lng, e.lngLat.lat],
+            rotation: 0,
+          };
+          
+          console.log('Adding new equipment:', newEquipment);
+          addEquipmentMarker(newEquipment);
+          if (mountedRef.current) {
+            setEquipment((prev) => {
+              const updated = [...prev, newEquipment];
+              console.log('Updated equipment array:', updated);
+              return updated;
+            });
+          }
+        }
+      }
+    };
+
+    mapRef.current.on('click', handleMapClick);
+    
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.off('click', handleMapClick);
+      }
+    };
+  }, [mapLoaded, drawMode, selectedTool]);
+
   // Separate effect for equipment changes in auto mode
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || drawMode !== 'auto') return;
-    
-    if (equipment.length > 0) {
-      // Placeholder for future auto work area generation
+    console.log('Equipment useEffect triggered:', { mapLoaded, drawMode, equipmentCount: equipment.length });
+    if (!mapLoaded || !mapRef.current || drawMode !== 'auto') {
+      console.log('Skipping equipment update:', { mapLoaded, drawMode });
+      return;
     }
+    
+    console.log('Updating equipment rectangles and work area');
+    updateEquipmentRectangles();
+    generateAutoWorkArea();
   }, [equipment, mapLoaded, drawMode]);
 
   const addDimensionLabels = (feature: GeoJSON.Feature) => {
@@ -404,6 +394,163 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     }
   };
 
+  const createEquipmentRectangle = (equipmentItem: Equipment) => {
+    const { coordinates, width, length, rotation, color } = equipmentItem;
+    
+    // Convert meters to approximate degrees (rough approximation)
+    const metersToLng = width / 111320;
+    const metersToLat = length / 110540;
+    
+    // Create rectangle corners
+    const halfWidth = metersToLng / 2;
+    const halfLength = metersToLat / 2;
+    
+    const corners = [
+      [-halfWidth, -halfLength],
+      [halfWidth, -halfLength],
+      [halfWidth, halfLength],
+      [-halfWidth, halfLength],
+      [-halfWidth, -halfLength]
+    ];
+    
+    // Apply rotation if needed (for future use)
+    const rotatedCorners = corners.map(([x, y]) => [
+      coordinates[0] + x,
+      coordinates[1] + y
+    ]);
+    
+    return {
+      type: 'Feature' as const,
+      properties: {
+        id: equipmentItem.id,
+        color: color,
+        name: equipmentItem.name,
+        dimensions: `${width}m × ${length}m`
+      },
+      geometry: {
+        type: 'Polygon' as const,
+        coordinates: [rotatedCorners]
+      }
+    };
+  };
+
+  const updateEquipmentRectangles = () => {
+    if (!drawRef.current || !mapLoaded) {
+      console.log('Cannot update equipment rectangles - missing refs');
+      return;
+    }
+    
+    console.log('Creating rectangles for equipment:', equipment);
+    const rectangleFeatures = equipment.map(createEquipmentRectangle);
+    console.log('Created rectangle features:', rectangleFeatures);
+    
+    // Clear existing equipment rectangles from draw
+    const allFeatures = drawRef.current.getAll();
+    console.log('All current draw features:', allFeatures);
+    const nonEquipmentFeatures = allFeatures.features.filter(
+      feature => !feature.properties?.isEquipment
+    );
+    console.log('Non-equipment features:', nonEquipmentFeatures);
+    
+    // Set all features (non-equipment + new equipment rectangles)
+    const newRectanglesWithProperties = rectangleFeatures.map(rect => ({
+      ...rect,
+      properties: {
+        ...rect.properties,
+        isEquipment: true
+      }
+    }));
+    
+    const finalFeatures = [...nonEquipmentFeatures, ...newRectanglesWithProperties];
+    console.log('Setting draw features to:', finalFeatures);
+    
+    drawRef.current.set({
+      type: 'FeatureCollection',
+      features: finalFeatures
+    });
+  };
+
+  const generateAutoWorkArea = () => {
+    if (!drawRef.current || !mapLoaded) return;
+    
+    if (equipment.length === 0) {
+      // Clear work area if no equipment - just keep equipment rectangles
+      const allFeatures = drawRef.current.getAll();
+      const equipmentFeatures = allFeatures.features.filter(
+        feature => feature.properties?.isEquipment
+      );
+      
+      drawRef.current.set({
+        type: 'FeatureCollection',
+        features: equipmentFeatures
+      });
+      
+      // Clear dimension labels
+      dimensionLabelsRef.current.forEach(marker => marker.remove());
+      dimensionLabelsRef.current = [];
+      
+      return;
+    }
+
+    // Get all equipment rectangles
+    const rectangles = equipment.map(createEquipmentRectangle);
+    
+    // Find bounding box of all equipment
+    let minLng = Infinity, maxLng = -Infinity;
+    let minLat = Infinity, maxLat = -Infinity;
+    
+    rectangles.forEach(rect => {
+      const coords = rect.geometry.coordinates[0];
+      coords.forEach(([lng, lat]) => {
+        minLng = Math.min(minLng, lng);
+        maxLng = Math.max(maxLng, lng);
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+      });
+    });
+    
+    // Add buffer around equipment (approximately 3 meters)
+    const bufferLng = 3 / 111320;
+    const bufferLat = 3 / 110540;
+    
+    const workAreaPolygon = {
+      type: 'Feature' as const,
+      properties: {
+        isWorkArea: true
+      },
+      geometry: {
+        type: 'Polygon' as const,
+        coordinates: [[
+          [minLng - bufferLng, minLat - bufferLat],
+          [maxLng + bufferLng, minLat - bufferLat],
+          [maxLng + bufferLng, maxLat + bufferLat],
+          [minLng - bufferLng, maxLat + bufferLat],
+          [minLng - bufferLng, minLat - bufferLat]
+        ]]
+      }
+    };
+
+
+    // Get current equipment rectangles and add work area
+    const allFeatures = drawRef.current.getAll();
+    const equipmentFeatures = allFeatures.features.filter(
+      feature => feature.properties?.isEquipment
+    );
+    
+    drawRef.current.set({
+      type: 'FeatureCollection',
+      features: [...equipmentFeatures, workAreaPolygon]
+    });
+
+    // Update parent component with the generated work area
+    if (mountedRef.current) {
+      onDataUpdate(workAreaPolygon, equipment);
+    }
+    
+    // Add dimension labels to the auto-generated work area
+    addDimensionLabels(workAreaPolygon);
+  };
+
   const handleModeChange = (mode: 'manual' | 'auto') => {
     if (mode !== drawMode) {
       if (drawRef.current) {
@@ -596,8 +743,8 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
             {drawMode === 'manual'
               ? '💡 Click "Draw Work Area" button above, then click on the map to start drawing a polygon. Click each corner of your work area, then double-click to finish.'
               : selectedTool === 'select'
-                ? '💡 Click and drag equipment to move. Right-click to remove. Double-click to rotate.'
-                : `💡 Click to place ${EQUIPMENT_TYPES.find((t) => t.id === selectedTool)?.name || 'equipment'}. The work area will be automatically generated.`}
+                ? '💡 Click and drag equipment rectangles to move. Right-click to remove. Each piece of equipment is shown as a colored rectangle with its actual dimensions.'
+                : `💡 Click to place ${EQUIPMENT_TYPES.find((t) => t.id === selectedTool)?.name || 'equipment'}. You'll see a colored rectangle showing the actual equipment size. The work area will be automatically generated with buffer space.`}
           </p>
         </div>
       </div>

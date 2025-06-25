@@ -224,6 +224,65 @@ const mapDrawTheme = [
       'circle-color': '#404040'
     }
   },
+  // Equipment rectangles - special styling
+  {
+    id: 'gl-draw-equipment-fill',
+    type: 'fill',
+    filter: ['all',
+      ['==', '$type', 'Polygon'],
+      ['==', 'isEquipment', true]
+    ],
+    paint: {
+      'fill-color': ['get', 'color'],
+      'fill-opacity': 0.3
+    }
+  },
+  {
+    id: 'gl-draw-equipment-stroke',
+    type: 'line',
+    filter: ['all',
+      ['==', '$type', 'Polygon'],
+      ['==', 'isEquipment', true]
+    ],
+    layout: {
+      'line-cap': 'round',
+      'line-join': 'round'
+    },
+    paint: {
+      'line-color': ['get', 'color'],
+      'line-width': 2
+    }
+  },
+  // Work area - special styling
+  {
+    id: 'gl-draw-work-area-fill',
+    type: 'fill',
+    filter: ['all',
+      ['==', '$type', 'Polygon'],
+      ['==', 'isWorkArea', true]
+    ],
+    paint: {
+      'fill-color': '#f59e0b',
+      'fill-opacity': 0.15
+    }
+  },
+  {
+    id: 'gl-draw-work-area-stroke',
+    type: 'line',
+    filter: ['all',
+      ['==', '$type', 'Polygon'],
+      ['==', 'isWorkArea', true]
+    ],
+    layout: {
+      'line-cap': 'round',
+      'line-join': 'round'
+    },
+    paint: {
+      'line-color': '#f59e0b',
+      'line-width': 2,
+      'line-dasharray': [2, 2]
+    }
+  },
   // Cold (inactive) lines - dashed
   {
     id: 'gl-draw-lines.cold',
