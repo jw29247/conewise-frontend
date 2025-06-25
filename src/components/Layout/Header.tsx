@@ -32,7 +32,7 @@ const Header = () => {
             
             <div className="relative">
               <button className="flex items-center p-2 text-sm rounded-full text-gray-700 hover:bg-gray-100 transition-colors">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-medium">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
                   U
                 </div>
               </button>

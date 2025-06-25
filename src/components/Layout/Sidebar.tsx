@@ -62,7 +62,7 @@ const Sidebar = () => {
               {item.icon}
               <span className="ml-3">{item.name}</span>
               {item.name === 'Plans' && (
-                <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
+                <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700">
                   New
                 </span>
               )}
@@ -85,9 +85,9 @@ const Sidebar = () => {
         </div>
         
         <div className="mt-8 px-3">
-          <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg p-4">
             <h3 className="text-white text-sm font-medium">Pro Tip</h3>
-            <p className="mt-1 text-primary-100 text-xs">
+            <p className="mt-1 text-brand-100 text-xs">
               Use keyboard shortcuts to navigate faster. Press '?' to see all shortcuts.
             </p>
           </div>

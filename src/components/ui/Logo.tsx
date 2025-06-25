@@ -1,24 +1,39 @@
+import { Link } from 'react-router-dom';
+
 interface LogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  showText?: boolean;
 }
 
-const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
+const Logo: React.FC<LogoProps> = ({ className = '', size = 'md', showText = true }) => {
   const sizes = {
-    sm: 'h-8 w-8',
-    md: 'h-10 w-10',
-    lg: 'h-12 w-12',
+    sm: { icon: 'h-6 w-6', text: 'text-lg' },
+    md: { icon: 'h-8 w-8', text: 'text-2xl' },
+    lg: { icon: 'h-10 w-10', text: 'text-3xl' },
   };
   
   return (
-    <div className={`${sizes[size]} ${className} relative`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg rotate-6"></div>
-      <div className="absolute inset-0 bg-gradient-to-tr from-primary-400 to-primary-600 rounded-lg flex items-center justify-center">
-        <svg className="w-2/3 h-2/3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-        </svg>
+    <Link to="/" className={`flex items-center gap-3 ${className} hover:opacity-80 transition-opacity`}>
+      <div className={`${sizes[size].icon} relative flex-shrink-0`}>
+        {/* Minimalist cone icon */}
+        <div className="w-full h-full flex items-center justify-center">
+          <svg className="w-full h-full" viewBox="0 0 32 32" fill="none">
+            <path 
+              d="M16 4L4 28H28L16 4Z" 
+              stroke="currentColor" 
+              strokeWidth="1.5" 
+              strokeLinejoin="round"
+              className="fill-current opacity-10"
+            />
+            <circle cx="16" cy="20" r="2" className="fill-current" />
+          </svg>
+        </div>
       </div>
-    </div>
+      {showText && (
+        <span className={`font-light ${sizes[size].text} tracking-tight`}>Conewise</span>
+      )}
+    </Link>
   );
 };
 
