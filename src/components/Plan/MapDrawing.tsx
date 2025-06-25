@@ -46,7 +46,7 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
   const [selectedTool, setSelectedTool] = useState<string>('select');
   const [equipment, setEquipment] = useState<Equipment[]>(initialEquipment);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [workAreaDimensions, setWorkAreaDimensions] = useState<{ area: number; perimeter: number } | null>(null);
+  const dimensionLabelsRef = useRef<maplibregl.Marker[]>([]);
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
   const mountedRef = useRef(true);
 
@@ -79,11 +79,14 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     map.on('load', () => {
       if (mountedRef.current) {
         setMapLoaded(true);
+        if (drawRef.current && drawMode === 'manual') {
+          drawRef.current.changeMode('draw_polygon');
+        }
       }
       
       if (initialWorkArea) {
         draw.add(initialWorkArea);
-        calculateAreaDimensions(initialWorkArea);
+        addDimensionLabels(initialWorkArea);
       }
 
       map.addSource('auto-work-area', {
@@ -164,9 +167,6 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     if (!mapLoaded || !mapRef.current) return;
     
     if (drawMode === 'manual') {
-      if (drawRef.current) {
-        drawRef.current.changeMode('draw_polygon');
-      }
       try {
         const source = mapRef.current.getSource('auto-work-area') as maplibregl.GeoJSONSource;
         if (source) {
@@ -199,20 +199,38 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     if (!mapLoaded || !mapRef.current || drawMode !== 'auto') return;
     
     if (equipment.length > 0) {
-      generateAutoWorkArea();
+      // Placeholder for future auto work area generation
     }
   }, [equipment, mapLoaded, drawMode]);
 
-  const calculateAreaDimensions = (feature: GeoJSON.Feature) => {
-    if (feature && feature.geometry && feature.geometry.type === 'Polygon') {
-      const area = turf.area(feature);
-      const perimeter = turf.length(turf.lineString(feature.geometry.coordinates[0]), { units: 'meters' });
-      if (mountedRef.current) {
-        setWorkAreaDimensions({
-          area: Math.round(area * 100) / 100,
-          perimeter: Math.round(perimeter * 100) / 100,
-        });
-      }
+  const addDimensionLabels = (feature: GeoJSON.Feature) => {
+    if (!mapRef.current || !feature.geometry || feature.geometry.type !== 'Polygon') return;
+
+    // Clear existing labels
+    dimensionLabelsRef.current.forEach(marker => marker.remove());
+    dimensionLabelsRef.current = [];
+
+    const coords = feature.geometry.coordinates[0];
+    for (let i = 0; i < coords.length - 1; i++) {
+      const start = turf.point(coords[i]);
+      const end = turf.point(coords[i + 1]);
+      const length = turf.distance(start, end, { units: 'meters' });
+      const midpoint = turf.midpoint(start, end).geometry.coordinates as [number, number];
+
+      const el = document.createElement('div');
+      el.className = 'dimension-label';
+      el.style.background = 'rgba(0, 0, 0, 0.7)';
+      el.style.color = 'white';
+      el.style.padding = '2px 6px';
+      el.style.borderRadius = '4px';
+      el.style.fontSize = '12px';
+      el.innerHTML = `${length.toFixed(1)}m`;
+
+      const label = new maplibregl.Marker(el)
+        .setLngLat(midpoint)
+        .addTo(mapRef.current);
+      
+      dimensionLabelsRef.current.push(label);
     }
   };
 
@@ -231,16 +249,16 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     const workArea = data.features.length > 0 ? data.features[0] : null;
     
     if (workArea) {
-      calculateAreaDimensions(workArea);
+      addDimensionLabels(workArea);
     } else {
       if (mountedRef.current) {
-        setWorkAreaDimensions(null);
+        dimensionLabelsRef.current.forEach(marker => marker.remove());
+        dimensionLabelsRef.current = [];
       }
     }
     
     updateData();
   }, [drawMode, updateData]);
-
 
   const addEquipmentMarker = (equipmentItem: Equipment) => {
     if (!mapRef.current) return;
@@ -343,18 +361,15 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     }
   };
 
-  const clearAll = () => {
-    if (drawRef.current) {
-      drawRef.current.deleteAll();
-    }
-    clearEquipment();
-    setWorkAreaDimensions(null);
-    updateData();
-  };
-
   const handleModeChange = (mode: 'manual' | 'auto') => {
     if (mode !== drawMode) {
-      clearAll();
+      if (drawRef.current) {
+        drawRef.current.deleteAll();
+      }
+      clearEquipment();
+      dimensionLabelsRef.current.forEach(marker => marker.remove());
+      dimensionLabelsRef.current = [];
+      updateData();
       setDrawMode(mode);
       if (mode === 'manual') {
         setSelectedTool('select');
@@ -482,28 +497,9 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
             </>
           )}
           
-          <button
-            onClick={clearAll}
-            className="w-full mt-4 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
-          >
-            Clear All
-          </button>
-        </div>
-
-        {/* Dimensions Display */}
-        {workAreaDimensions && (
-          <div className="absolute top-4 right-4 z-10 bg-white rounded-xl shadow-lg border border-gray-100 p-4 mr-12">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Work Area</h4>
-            <div className="space-y-1">
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Area:</span> {workAreaDimensions.area} m²
-              </p>
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Perimeter:</span> {workAreaDimensions.perimeter} m
-              </p>
-            </div>
           </div>
-        )}
+
+        <div ref={mapContainer} className="w-full h-[600px] rounded-xl overflow-hidden" />
 
         {/* Equipment List - Only show in auto mode */}
         {drawMode === 'auto' && equipment.length > 0 && (
@@ -533,9 +529,6 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
                 : `💡 Click to place ${EQUIPMENT_TYPES.find((t) => t.id === selectedTool)?.name || 'equipment'}. The work area will be automatically generated.`}
           </p>
         </div>
-
-        {/* Map Container */}
-        <div ref={mapContainer} className="w-full h-[600px] rounded-xl overflow-hidden" />
       </div>
     </div>
   );
