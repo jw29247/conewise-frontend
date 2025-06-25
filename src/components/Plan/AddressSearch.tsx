@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import { debounce } from 'lodash';
-import Input from '../ui/Input';
 import Button from '../ui/Button';
 import { MagnifyingGlassIcon, MapPinIcon } from '@heroicons/react/24/outline';
 

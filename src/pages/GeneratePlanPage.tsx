@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import AppLayout from '../components/Layout/AppLayout';
 import Button from '../components/ui/Button';
 import MapDrawing from '../components/Plan/MapDrawing';
@@ -43,7 +42,6 @@ const STEPS = [
 ];
 
 const GeneratePlanPage: React.FC = () => {
-  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<PlanFormData>({
     address: '',

@@ -1,22 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import Logo from '../components/ui/Logo';
+import AppLayout from '../components/Layout/AppLayout';
 import Button from '../components/ui/Button';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
 const TeamPage = () => {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   const teamMembers = [
     {
@@ -99,46 +88,6 @@ const TeamPage = () => {
     }
   ];
 
-  const navItems = [
-    { 
-      name: 'Dashboard', 
-      path: '/dashboard',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-      )
-    },
-    { 
-      name: 'Plans', 
-      path: '/plans',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-        </svg>
-      )
-    },
-    { 
-      name: 'Team', 
-      path: '/team',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      ),
-      active: true
-    },
-    { 
-      name: 'Settings', 
-      path: '/settings',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      )
-    },
-  ];
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -174,110 +123,20 @@ const TeamPage = () => {
     { label: 'Planners', value: teamMembers.filter(m => m.role === 'planner').length, color: 'text-blue-600' },
   ];
 
+  const handleInvite = () => {
+    setShowInviteModal(true);
+  };
+
   return (
-    <div className="min-h-screen bg-white relative overflow-hidden">
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-white to-gray-50"></div>
-      
-      {/* Traffic signal accent - subtle in corner */}
-      <div className="absolute top-0 right-0 transform translate-x-1/3 -translate-y-1/3 opacity-10">
-        <div className="flex gap-4">
-          <div className="w-64 h-64 rounded-full bg-red-500 blur-3xl"></div>
-          <div className="w-64 h-64 rounded-full bg-amber-500 blur-3xl"></div>
-          <div className="w-64 h-64 rounded-full bg-green-500 blur-3xl"></div>
-        </div>
-      </div>
-
-      <div className="relative z-10 flex h-screen">
-        {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-100 transition-all duration-300 flex flex-col`}>
-          {/* Logo */}
-          <div className="p-6 border-b border-gray-100">
-            <Logo className="text-gray-900" size="lg" showText={sidebarOpen} />
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-light transition-all ${
-                  item.active 
-                    ? 'bg-gray-900 text-white' 
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                {item.icon}
-                {sidebarOpen && <span>{item.name}</span>}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Bottom section */}
-          <div className="p-4 border-t border-gray-100">
-            {sidebarOpen && (
-              <div className="bg-gradient-to-br from-amber-50 to-green-50 rounded-xl p-4 mb-4">
-                <h3 className="text-sm font-medium text-gray-900">Team tip</h3>
-                <p className="mt-1 text-xs text-gray-600">
-                  Assign the right roles to keep your plans secure and organized.
-                </p>
-              </div>
-            )}
-            
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="w-full flex items-center justify-center p-2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                  d={sidebarOpen ? "M11 19l-7-7 7-7m8 14l-7-7 7-7" : "M13 5l7 7-7 7M5 5l7 7-7 7"} />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="bg-white border-b border-gray-100 px-8 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-light text-gray-900">Team Management</h1>
-                <p className="text-sm text-gray-500 mt-1">Manage your team members and their permissions</p>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <Button variant="brand" onClick={() => setShowInviteModal(true)}>
-                  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
-                  Invite Member
-                </Button>
-                
-                <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
-                
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">John Smith</p>
-                    <p className="text-xs text-gray-500">Account Admin</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center text-white font-medium">
-                    JS
-                  </div>
-                </div>
-                
-                <Button onClick={handleLogout} variant="ghost" size="sm">
-                  Sign out
-                </Button>
-              </div>
-            </div>
-          </header>
+    <AppLayout 
+      title="Team Management"
+      subtitle="Manage your team members and their permissions"
+      showCreateButton={true}
+      createButtonText="Invite Member"
+      onCreateClick={handleInvite}
+    >
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto">
 
           {/* Stats Bar */}
           <div className="bg-white border-b border-gray-100 px-8 py-4">
@@ -325,8 +184,8 @@ const TeamPage = () => {
             </div>
           </div>
 
-          {/* Main Content Area */}
-          <main className="flex-1 overflow-y-auto p-8">
+          {/* Content Area */}
+          <div className="p-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredMembers.map((member) => (
                 <div key={member.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
@@ -404,9 +263,8 @@ const TeamPage = () => {
                 </Button>
               </div>
             )}
-          </main>
-        </div>
-      </div>
+          </div>
+      </main>
 
       {/* Invite Modal */}
       {showInviteModal && (
@@ -459,7 +317,7 @@ const TeamPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </AppLayout>
   );
 };
 

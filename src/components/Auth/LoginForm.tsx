@@ -4,7 +4,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import Button from '../ui/Button';
-import Input from '../ui/Input';
 import LoadingIndicator from '../ui/LoadingIndicator';
 
 interface LoginFormData {
@@ -28,9 +27,14 @@ const LoginForm = () => {
       const response = await api.post('/auth/login', data);
       login(response.data.token);
       navigate(from, { replace: true });
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        setError('root', { message: error.response.data.message });
+    } catch (error) {
+      if (error instanceof Error && 'response' in error) {
+        const axiosError = error as { response?: { data?: { message?: string } } };
+        if (axiosError.response?.data?.message) {
+          setError('root', { message: axiosError.response.data.message });
+        } else {
+          setError('root', { message: 'An error occurred. Please try again.' });
+        }
       } else {
         setError('root', { message: 'An error occurred. Please try again.' });
       }
