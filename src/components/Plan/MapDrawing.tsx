@@ -64,10 +64,7 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
 
     const draw = new MapboxDraw({
       displayControlsDefault: false,
-      controls: {
-        polygon: true,
-        trash: true,
-      },
+      controls: {},
       defaultMode: 'simple_select',
       styles: mapDrawTheme
     });
@@ -399,6 +396,47 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
             </div>
           </div>
 
+          {/* Drawing Tools - Only show in manual mode */}
+          {drawMode === 'manual' && (
+            <>
+              <div className="border-t border-gray-100 pt-4">
+                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Drawing Tools</h4>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      if (drawRef.current) {
+                        drawRef.current.changeMode('simple_select');
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 rounded-lg text-sm font-medium text-left transition-all bg-gray-50 text-gray-700 hover:bg-gray-100"
+                  >
+                    🔄 Select / Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (drawRef.current) {
+                        drawRef.current.changeMode('draw_polygon');
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 rounded-lg text-sm font-medium text-left transition-all bg-blue-500 text-white hover:bg-blue-600"
+                  >
+                    ✏️ Draw Work Area
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (drawRef.current) {
+                        drawRef.current.trash();
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 rounded-lg text-sm font-medium text-left transition-all bg-red-500 text-white hover:bg-red-600"
+                  >
+                    🗑️ Delete Selected
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Equipment Tools - Only show in auto mode */}
           {drawMode === 'auto' && (
             <>
@@ -486,7 +524,7 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
         <div className="absolute bottom-4 left-4 right-4 z-10 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-xl shadow-lg p-4">
           <p className="text-sm">
             {drawMode === 'manual'
-              ? '💡 Click on the map to start drawing a polygon. Click each corner of your work area, then double-click to finish.'
+              ? '💡 Click "Draw Work Area" button above, then click on the map to start drawing a polygon. Click each corner of your work area, then double-click to finish.'
               : selectedTool === 'select'
                 ? '💡 Click and drag equipment to move. Right-click to remove. Double-click to rotate.'
                 : `💡 Click to place ${EQUIPMENT_TYPES.find((t) => t.id === selectedTool)?.name || 'equipment'}. The work area will be automatically generated.`}
