@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import * as turf from '@turf/turf';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import mapDrawTheme from '../../utils/mapDrawTheme';
 
 interface Equipment {
   id: string;
@@ -47,8 +48,11 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [workAreaDimensions, setWorkAreaDimensions] = useState<{ area: number; perimeter: number } | null>(null);
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
+    
     if (!mapContainer.current) return;
 
     const map = new maplibregl.Map({
@@ -65,6 +69,7 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
         trash: true,
       },
       defaultMode: 'simple_select',
+      styles: mapDrawTheme
     });
 
     map.addControl(draw);
@@ -75,7 +80,9 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     drawRef.current = draw;
 
     map.on('load', () => {
-      setMapLoaded(true);
+      if (mountedRef.current) {
+        setMapLoaded(true);
+      }
       
       if (initialWorkArea) {
         draw.add(initialWorkArea);
@@ -133,12 +140,18 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
           };
           
           addEquipmentMarker(newEquipment);
-          setEquipment((prev) => [...prev, newEquipment]);
+          if (mountedRef.current) {
+            setEquipment((prev) => [...prev, newEquipment]);
+          }
         }
       }
     });
 
     return () => {
+      mountedRef.current = false;
+      // Clear all markers before removing the map
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current.clear();
       map.remove();
     };
   }, [center]);
@@ -149,33 +162,69 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     }
   }, [mapLoaded, initialEquipment]);
 
+  // Separate effect for draw mode changes to avoid infinite loops
   useEffect(() => {
-    if (drawMode === 'auto' && equipment.length > 0) {
-      generateAutoWorkArea();
-    } else if (drawMode === 'manual' && mapRef.current) {
-      const source = mapRef.current.getSource('auto-work-area') as maplibregl.GeoJSONSource;
-      if (source) {
-        source.setData({
-          type: 'FeatureCollection',
-          features: []
-        });
+    if (!mapLoaded || !mapRef.current) return;
+    
+    if (drawMode === 'manual') {
+      try {
+        const source = mapRef.current.getSource('auto-work-area') as maplibregl.GeoJSONSource;
+        if (source) {
+          source.setData({
+            type: 'FeatureCollection',
+            features: []
+          });
+        }
+      } catch (error) {
+        console.error('Error updating auto-work-area source:', error);
       }
-      clearEquipment();
+      // Only clear equipment when switching to manual mode, not on every equipment change
+      if (equipment.length > 0) {
+        // Clear markers from map but don't update state to prevent infinite loop
+        markersRef.current.forEach(marker => {
+          if (marker && typeof marker.remove === 'function') {
+            marker.remove();
+          }
+        });
+        markersRef.current.clear();
+        if (mountedRef.current) {
+          setEquipment([]);
+        }
+      }
     }
-  }, [equipment, drawMode]);
+  }, [drawMode, mapLoaded, equipment.length]);
+  
+  // Separate effect for equipment changes in auto mode
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || drawMode !== 'auto') return;
+    
+    if (equipment.length > 0) {
+      generateAutoWorkArea();
+    }
+  }, [equipment, mapLoaded, drawMode]);
 
   const calculateAreaDimensions = (feature: GeoJSON.Feature) => {
     if (feature && feature.geometry && feature.geometry.type === 'Polygon') {
       const area = turf.area(feature);
       const perimeter = turf.length(turf.lineString(feature.geometry.coordinates[0]), { units: 'meters' });
-      setWorkAreaDimensions({
-        area: Math.round(area * 100) / 100,
-        perimeter: Math.round(perimeter * 100) / 100,
-      });
+      if (mountedRef.current) {
+        setWorkAreaDimensions({
+          area: Math.round(area * 100) / 100,
+          perimeter: Math.round(perimeter * 100) / 100,
+        });
+      }
     }
   };
 
-  const handleDrawUpdate = () => {
+  const updateData = useCallback(() => {
+    if (drawMode === 'manual' && drawRef.current) {
+      const data = drawRef.current.getAll();
+      const workArea = data.features.length > 0 ? data.features[0] : null;
+      onDataUpdate(workArea, []);
+    }
+  }, [drawMode, onDataUpdate]);
+
+  const handleDrawUpdate = useCallback(() => {
     if (!drawRef.current || drawMode !== 'manual') return;
     
     const data = drawRef.current.getAll();
@@ -184,40 +233,14 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     if (workArea) {
       calculateAreaDimensions(workArea);
     } else {
-      setWorkAreaDimensions(null);
+      if (mountedRef.current) {
+        setWorkAreaDimensions(null);
+      }
     }
     
     updateData();
-  };
+  }, [drawMode, updateData]);
 
-  const generateAutoWorkArea = () => {
-    if (!mapRef.current || equipment.length === 0) return;
-
-    const equipmentPolygons = equipment.map(eq => {
-      const center = turf.point(eq.coordinates);
-      const maxDimension = Math.max(eq.width, eq.length);
-      const buffer = turf.buffer(center, maxDimension / 2 + 2, { units: 'meters' });
-      return buffer;
-    });
-
-    let workArea = equipmentPolygons[0];
-    for (let i = 1; i < equipmentPolygons.length; i++) {
-      workArea = turf.union(workArea, equipmentPolygons[i]) || workArea;
-    }
-
-    const smoothed = turf.simplify(workArea, { tolerance: 0.0001, highQuality: true });
-
-    const source = mapRef.current.getSource('auto-work-area') as maplibregl.GeoJSONSource;
-    if (source) {
-      source.setData({
-        type: 'FeatureCollection',
-        features: [smoothed]
-      });
-    }
-
-    calculateAreaDimensions(smoothed);
-    onDataUpdate(smoothed, equipment);
-  };
 
   const addEquipmentMarker = (equipmentItem: Equipment) => {
     if (!mapRef.current) return;
@@ -269,46 +292,55 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
 
     marker.on('dragend', () => {
       const lngLat = marker.getLngLat();
-      setEquipment((prev) =>
-        prev.map((item) =>
-          item.id === equipmentItem.id
-            ? { ...item, coordinates: [lngLat.lng, lngLat.lat] }
-            : item
-        )
-      );
+      if (mountedRef.current) {
+        setEquipment((prev) =>
+          prev.map((item) =>
+            item.id === equipmentItem.id
+              ? { ...item, coordinates: [lngLat.lng, lngLat.lat] }
+              : item
+          )
+        );
+      }
     });
 
     el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       marker.remove();
       markersRef.current.delete(equipmentItem.id);
-      setEquipment((prev) => prev.filter((item) => item.id !== equipmentItem.id));
+      if (mountedRef.current) {
+        setEquipment((prev) => prev.filter((item) => item.id !== equipmentItem.id));
+      }
     });
 
     el.addEventListener('dblclick', (e) => {
       e.stopPropagation();
-      setEquipment((prev) =>
-        prev.map((item) =>
-          item.id === equipmentItem.id
-            ? { ...item, rotation: (item.rotation + 45) % 360 }
-            : item
-        )
-      );
+      if (mountedRef.current) {
+        setEquipment((prev) =>
+          prev.map((item) =>
+            item.id === equipmentItem.id
+              ? { ...item, rotation: (item.rotation + 45) % 360 }
+              : item
+          )
+        );
+      }
     });
   };
 
-  const updateData = () => {
-    if (drawMode === 'manual' && drawRef.current) {
-      const data = drawRef.current.getAll();
-      const workArea = data.features.length > 0 ? data.features[0] : null;
-      onDataUpdate(workArea, []);
-    }
-  };
 
   const clearEquipment = () => {
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current.clear();
-    setEquipment([]);
+    try {
+      markersRef.current.forEach(marker => {
+        if (marker && typeof marker.remove === 'function') {
+          marker.remove();
+        }
+      });
+      markersRef.current.clear();
+      if (mountedRef.current) {
+        setEquipment([]);
+      }
+    } catch (error) {
+      console.error('Error clearing equipment:', error);
+    }
   };
 
   const clearAll = () => {
