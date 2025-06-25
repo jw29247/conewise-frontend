@@ -164,6 +164,9 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
     if (!mapLoaded || !mapRef.current) return;
     
     if (drawMode === 'manual') {
+      if (drawRef.current) {
+        drawRef.current.changeMode('draw_polygon');
+      }
       try {
         const source = mapRef.current.getSource('auto-work-area') as maplibregl.GeoJSONSource;
         if (source) {
@@ -189,7 +192,7 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
         }
       }
     }
-  }, [drawMode, mapLoaded, equipment.length]);
+  }, [drawMode, mapLoaded]);
   
   // Separate effect for equipment changes in auto mode
   useEffect(() => {
