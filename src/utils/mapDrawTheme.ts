@@ -31,8 +31,8 @@ const mapDrawTheme = [
       ['==', '$type', 'Point'],
       ['==', 'meta', 'midpoint']],
     paint: {
-      'circle-radius': 3,
-      'circle-color': '#fbb03b'
+      'circle-radius': 0,
+      'circle-opacity': 0
     }
   },
   {
@@ -107,8 +107,8 @@ const mapDrawTheme = [
       ['!=', 'mode', 'static']
     ],
     paint: {
-      'circle-radius': 5,
-      'circle-color': '#fff'
+      'circle-radius': 0,
+      'circle-opacity': 0
     }
   },
   {
@@ -120,8 +120,8 @@ const mapDrawTheme = [
       ['!=', 'mode', 'static']
     ],
     paint: {
-      'circle-radius': 3,
-      'circle-color': '#fbb03b'
+      'circle-radius': 0,
+      'circle-opacity': 0
     }
   },
   {
@@ -163,8 +163,8 @@ const mapDrawTheme = [
       ['!=', 'meta', 'midpoint']
     ],
     paint: {
-      'circle-radius': 7,
-      'circle-color': '#fff'
+      'circle-radius': 0,
+      'circle-opacity': 0
     }
   },
   {
@@ -175,8 +175,8 @@ const mapDrawTheme = [
       ['!=', 'meta', 'midpoint'],
       ['==', 'active', 'true']],
     paint: {
-      'circle-radius': 5,
-      'circle-color': '#fbb03b'
+      'circle-radius': 0,
+      'circle-opacity': 0
     }
   },
   {

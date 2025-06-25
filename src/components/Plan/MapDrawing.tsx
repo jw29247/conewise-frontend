@@ -66,7 +66,8 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
       displayControlsDefault: false,
       controls: {},
       defaultMode: 'simple_select',
-      styles: mapDrawTheme
+      styles: mapDrawTheme,
+      userProperties: true
     });
 
     map.addControl(draw);
@@ -219,14 +220,53 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
 
       const el = document.createElement('div');
       el.className = 'dimension-label';
-      el.style.background = 'rgba(0, 0, 0, 0.7)';
-      el.style.color = 'white';
-      el.style.padding = '2px 6px';
-      el.style.borderRadius = '4px';
-      el.style.fontSize = '12px';
-      el.innerHTML = `${length.toFixed(1)}m`;
+      el.style.cssText = `
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: #ffffff;
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: system-ui, -apple-system, sans-serif;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        position: relative;
+        text-align: center;
+        white-space: nowrap;
+        transform: translateY(-50%);
+        z-index: 10;
+        backdrop-filter: blur(8px);
+        transition: all 0.2s ease;
+      `;
+      
+      // Add hover effect
+      el.addEventListener('mouseenter', () => {
+        el.style.transform = 'translateY(-50%) scale(1.05)';
+        el.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.4), 0 3px 6px rgba(0, 0, 0, 0.15)';
+      });
+      
+      el.addEventListener('mouseleave', () => {
+        el.style.transform = 'translateY(-50%) scale(1)';
+        el.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)';
+      });
 
-      const label = new maplibregl.Marker(el)
+      // Create clean distance display with proper formatting
+      const distanceText = length >= 1000 
+        ? `${(length / 1000).toFixed(2)}km`
+        : length >= 100 
+          ? `${Math.round(length)}m`
+          : `${length.toFixed(1)}m`;
+      
+      el.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.8;">
+            <path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/>
+          </svg>
+          <span>${distanceText}</span>
+        </div>
+      `;
+
+      const label = new maplibregl.Marker({ element: el, className: 'dimension-label' })
         .setLngLat(midpoint)
         .addTo(mapRef.current);
       
@@ -280,29 +320,40 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
         font-size: 24px;
         cursor: move;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         position: relative;
-        transition: all 0.2s;
-      " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+        transition: all 0.2s ease;
+        backdrop-filter: blur(8px);
+      " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'">
         ${equipmentItem.icon}
         <div style="
           position: absolute;
-          bottom: -24px;
+          bottom: -28px;
           left: 50%;
           transform: translateX(-50%);
-          background: rgba(0,0,0,0.9);
+          background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
           color: white;
-          padding: 4px 8px;
-          border-radius: 6px;
+          padding: 6px 10px;
+          border-radius: 8px;
           font-size: 11px;
           white-space: nowrap;
-          font-weight: 500;
+          font-weight: 600;
+          font-family: system-ui, -apple-system, sans-serif;
+          box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(8px);
         ">
-          ${equipmentItem.width}m × ${equipmentItem.length}m
+          <div style='display: flex; align-items: center; gap: 3px;'>
+            <svg width='10' height='10' viewBox='0 0 16 16' fill='currentColor' style='opacity: 0.7;'>
+              <path d='M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z'/>
+            </svg>
+            <span>${equipmentItem.width}m × ${equipmentItem.length}m</span>
+          </div>
         </div>
       </div>
     `;
 
-    const marker = new maplibregl.Marker({ element: el, draggable: true })
+    const marker = new maplibregl.Marker({ element: el, draggable: true, className: 'equipment-marker' })
       .setLngLat(equipmentItem.coordinates)
       .addTo(mapRef.current);
 
@@ -379,6 +430,34 @@ const MapDrawing: React.FC<MapDrawingProps> = ({
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <style>
+        {`
+          /* Hide MapboxDraw default vertex markers - these are the blue pins */
+          .mapboxgl-canvas-container canvas + div {
+            pointer-events: none;
+          }
+          
+          .mapboxgl-canvas-container canvas + div > * {
+            display: none !important;
+          }
+          
+          /* Show only our custom markers by targeting their specific classes */
+          .maplibregl-marker.dimension-label,
+          .maplibregl-marker.equipment-marker {
+            display: block !important;
+            pointer-events: auto !important;
+          }
+          
+          /* Alternative approach - hide draw vertices specifically */
+          .mapboxgl-marker {
+            display: none !important;
+          }
+          
+          .maplibregl-marker {
+            display: block !important;
+          }
+        `}
+      </style>
       <div className="relative">
         {/* Drawing Mode Toggle */}
         <div className="absolute top-4 left-4 z-10 bg-white rounded-xl shadow-lg border border-gray-100 p-4" style={{ width: '320px' }}>
