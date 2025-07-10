@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
 interface AuthContextType {
@@ -24,26 +24,16 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      setToken(storedToken);
-      setIsAuthenticated(true);
-    }
-  }, []);
+  // Authentication is disabled for demo purposes, so pages are always accessible
+  const isAuthenticated = true;
 
   const login = (newToken: string) => {
-    localStorage.setItem('token', newToken);
     setToken(newToken);
-    setIsAuthenticated(true);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
     setToken(null);
-    setIsAuthenticated(false);
   };
 
   return (

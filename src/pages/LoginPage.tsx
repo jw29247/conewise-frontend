@@ -1,5 +1,5 @@
-import { useLocation } from 'react-router-dom';
-import LoginForm from '../components/Auth/LoginForm';
+import { useLocation, Link } from 'react-router-dom';
+import Button from '../components/ui/Button';
 import Logo from '../components/ui/Logo';
 
 const LoginPage = () => {
@@ -53,7 +53,11 @@ const LoginPage = () => {
             </div>
 
             <div className="mt-10">
-              <LoginForm />
+              <Link to="/dashboard">
+                <Button variant="brand" className="w-full" size="lg">
+                  View Dashboard
+                </Button>
+              </Link>
             </div>
             
             <p className="mt-10 text-center text-xs text-gray-400">
