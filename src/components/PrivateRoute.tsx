@@ -1,19 +1,13 @@
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+// This component previously handled authentication checks.
+// Authentication has been disabled for demo purposes so it
+// simply renders its children.
 
 interface PrivateRouteProps {
   children: React.ReactNode;
 }
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  const location = useLocation();
-
-  return isAuthenticated ? (
-    <>{children}</>
-  ) : (
-    <Navigate to="/login" state={{ from: location.pathname, requireAuth: true }} replace />
-  );
+  return <>{children}</>;
 };
 
 export default PrivateRoute;
